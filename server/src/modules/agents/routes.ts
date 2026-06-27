@@ -124,23 +124,8 @@ export default async function agentsRoutes(appBase: FastifyInstance) {
     return { ok: true };
   });
 
-  app.get('/agents/:id/versions', { schema: { params: IdParams } }, async (req) => {
-    const { workspaceId } = await getContext(app.container, req);
-    const versions = await service.listVersions(workspaceId, req.params.id);
-    if (!versions) throw new NotFoundError('Agent not found');
-    return versions;
-  });
-
-  app.get(
-    '/agents/:id/versions/:version',
-    { schema: { params: VersionParams } },
-    async (req) => {
-      const { workspaceId } = await getContext(app.container, req);
-      const version = await service.getVersion(workspaceId, req.params.id, req.params.version);
-      if (!version) throw new NotFoundError('Agent version not found');
-      return version;
-    },
-  );
+  // REMOVED: GET /agents/:id/versions and /agents/:id/versions/:version
+  // Version history is no longer exposed via API.
 
   app.get('/agents/:id/skills', { schema: { params: IdParams } }, async (req) => {
     const { workspaceId } = await getContext(app.container, req);
