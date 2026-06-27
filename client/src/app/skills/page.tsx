@@ -23,6 +23,7 @@ import {
 import type { Skill, SkillType } from "@devdigest/shared";
 import { AppShell } from "@/components/app-shell";
 import { useSkills, useCreateSkill, useUpdateSkill, useDeleteSkill } from "@/lib/hooks";
+import { api } from "@/lib/api";
 
 function typeBadgeColor(type: SkillType): string {
   switch (type) {
@@ -132,14 +133,9 @@ function CreateSkillModal({
           .replace("github.com", "raw.githubusercontent.com")
           .replace("/blob/", "/");
       }
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      setBody(text);
-      if (!name) {
-        const fileName = url.split("/").pop()?.replace(/\.\w+$/, "") ?? "imported";
-        setName(fileName);
-      }
+      const result = await api.post<{ body: string; name: string }>("/skills/import-url", { url });
+      setBody(result.body);
+      if (!name) setName(result.name);
     } catch {
       alert("Failed to fetch URL. Check the URL and try again.");
     } finally {

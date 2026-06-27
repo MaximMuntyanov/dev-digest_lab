@@ -82,4 +82,17 @@ export default async function skillsRoutes(appBase: FastifyInstance) {
     if (!ok) throw new NotFoundError('Skill not found');
     return { ok: true };
   });
+
+  app.post(
+    '/skills/import-url',
+    { schema: { body: z.object({ url: z.string().url() }) } },
+    async (req) => {
+      const { url } = req.body;
+      const res = await fetch(url);
+      if (!res.ok) throw new NotFoundError(`Failed to fetch URL: HTTP ${res.status}`);
+      const body = await res.text();
+      const fileName = url.split('/').pop()?.replace(/\.\w+$/, '') ?? 'imported';
+      return { body, name: fileName };
+    },
+  );
 }
