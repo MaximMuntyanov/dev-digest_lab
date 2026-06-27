@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { Container } from '../../platform/container.js';
 import type { ConventionCandidate, Skill } from '@devdigest/shared';
 import { ConventionExtraction } from '@devdigest/shared';
-import { ExternalServiceError, NotFoundError, ValidationError } from '../../platform/errors.js';
+import { NotFoundError, ValidationError } from '../../platform/errors.js';
 import { RepoRepository } from '../repos/repository.js';
 import { resolveFeatureModel } from '../settings/feature-models.js';
 import { SkillsRepository } from '../skills/repository.js';
@@ -25,13 +25,6 @@ function toCandidateDto(row: {
     confidence: row.confidence ?? 0,
     accepted: row.accepted,
   };
-}
-
-function parseJsonFromCompletion(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = fenced ? fenced[1]!.trim() : trimmed;
-  return JSON.parse(jsonStr);
 }
 
 function validateEvidence(
@@ -122,8 +115,10 @@ export class ConventionsService {
       .map((s) => `### File: ${s.path}\n\`\`\`\n${s.content.slice(0, 8000)}\n\`\`\``)
       .join('\n\n');
 
-    const result = await llm.complete({
+    const result = await llm.completeStructured({
       model,
+      schema: ConventionExtraction,
+      schemaName: 'ConventionExtraction',
       messages: [
         { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
         {
@@ -134,13 +129,7 @@ export class ConventionsService {
       temperature: 0.2,
     });
 
-    let extraction: ConventionExtraction;
-    try {
-      const json = parseJsonFromCompletion(result.text);
-      extraction = ConventionExtraction.parse(json);
-    } catch {
-      throw new ExternalServiceError('Failed to parse LLM response as convention extraction JSON');
-    }
+    const extraction = result.data;
 
     const validCandidates = extraction.candidates.filter((c) =>
       validateEvidence(repo.clonePath!, c.evidence_path, c.evidence_snippet),
