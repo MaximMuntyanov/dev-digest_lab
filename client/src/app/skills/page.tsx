@@ -14,11 +14,15 @@ import {
   Dropdown,
   Toggle,
   Markdown,
+  Modal,
+  FormField,
+  TextInput,
+  Textarea,
   Icon,
 } from "@devdigest/ui";
 import type { Skill, SkillType } from "@devdigest/shared";
 import { AppShell } from "@/components/app-shell";
-import { useSkills, useUpdateSkill, useDeleteSkill } from "@/lib/hooks";
+import { useSkills, useCreateSkill, useUpdateSkill, useDeleteSkill } from "@/lib/hooks";
 
 function typeBadgeColor(type: SkillType): string {
   switch (type) {
@@ -104,6 +108,104 @@ function SkillCard({
   );
 }
 
+function CreateSkillModal({
+  onClose,
+  t,
+}: {
+  onClose: () => void;
+  t: ReturnType<typeof useTranslations<"skills">>;
+}) {
+  const create = useCreateSkill();
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [body, setBody] = React.useState("");
+  const [importUrl, setImportUrl] = React.useState("");
+  const [importing, setImporting] = React.useState(false);
+
+  const fetchFromUrl = async () => {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    try {
+      let url = importUrl.trim();
+      if (url.includes("github.com") && url.includes("/blob/")) {
+        url = url
+          .replace("github.com", "raw.githubusercontent.com")
+          .replace("/blob/", "/");
+      }
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      setBody(text);
+      if (!name) {
+        const fileName = url.split("/").pop()?.replace(/\.\w+$/, "") ?? "imported";
+        setName(fileName);
+      }
+    } catch {
+      alert("Failed to fetch URL. Check the URL and try again.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const submit = async () => {
+    if (!name.trim() || !body.trim()) return;
+    await create.mutateAsync({
+      name: name.trim(),
+      description: description.trim() || name.trim(),
+      type: "custom",
+      source: importUrl ? "imported_url" : "manual",
+      body: body.trim(),
+    });
+    onClose();
+  };
+
+  return (
+    <Modal
+      width={640}
+      title="Add Skill"
+      subtitle="Create manually or import from URL"
+      onClose={onClose}
+      footer={
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <Button kind="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            kind="primary"
+            icon="Plus"
+            onClick={submit}
+            disabled={create.isPending || !name.trim() || !body.trim()}
+          >
+            {create.isPending ? "Creating..." : "Create Skill"}
+          </Button>
+        </div>
+      }
+    >
+      <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <FormField label="Import from URL">
+          <div style={{ display: "flex", gap: 8 }}>
+            <TextInput
+              value={importUrl}
+              onChange={setImportUrl}
+              placeholder="https://raw.githubusercontent.com/..."
+            />
+            <Button kind="secondary" size="sm" onClick={fetchFromUrl} disabled={importing || !importUrl.trim()}>
+              {importing ? "Loading..." : "Fetch"}
+            </Button>
+          </div>
+        </FormField>
+        <FormField label="Name" required>
+          <TextInput value={name} onChange={setName} placeholder="e.g. breaking-change" />
+        </FormField>
+        <FormField label="Description">
+          <TextInput value={description} onChange={setDescription} placeholder="What does this skill check?" />
+        </FormField>
+        <FormField label="Body (markdown)" required>
+          <Textarea value={body} onChange={setBody} rows={10} placeholder="# Skill directive..." />
+        </FormField>
+      </div>
+    </Modal>
+  );
+}
+
 export default function SkillsPage() {
   const t = useTranslations("skills");
   const { data: skills, isLoading, isError, refetch } = useSkills();
@@ -111,6 +213,7 @@ export default function SkillsPage() {
 
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [createOpen, setCreateOpen] = React.useState(false);
 
   const list = skills ?? [];
 
@@ -127,6 +230,7 @@ export default function SkillsPage() {
 
   return (
     <AppShell crumb={[{ label: t("page.crumbLab") }, { label: t("page.crumbSkills") }]}>
+      {createOpen && <CreateSkillModal onClose={() => setCreateOpen(false)} t={t} />}
       <div style={s.page}>
         <div style={s.header}>
           <div style={s.headerText}>
@@ -141,8 +245,8 @@ export default function SkillsPage() {
               </Button>
             }
             items={[
-              { label: t("page.menu.fromFile"), icon: "Upload", muted: true },
-              { label: t("page.menu.fromUrl"), icon: "Link", muted: true },
+              { label: t("page.menu.fromFile"), icon: "Upload", onClick: () => setCreateOpen(true) },
+              { label: t("page.menu.fromUrl"), icon: "Link", onClick: () => setCreateOpen(true) },
               { divider: true },
               { label: t("page.menu.community"), icon: "Search", muted: true },
             ]}
