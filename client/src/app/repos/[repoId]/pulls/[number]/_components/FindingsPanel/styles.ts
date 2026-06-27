@@ -15,6 +15,18 @@ export const s = {
     background: "var(--border)",
     margin: "0 2px",
   } satisfies CSSProperties,
+  counterBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  } satisfies CSSProperties,
+  counterChip: (active: boolean): CSSProperties => ({
+    cursor: "pointer",
+    opacity: active ? 1 : 0.55,
+    borderRadius: 6,
+    outline: active ? "1.5px solid var(--text-muted)" : "1.5px solid transparent",
+    transition: "opacity .15s, outline-color .15s",
+  }),
   toggleGroup: {
     marginLeft: "auto",
     display: "flex",
