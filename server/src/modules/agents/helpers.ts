@@ -16,12 +16,12 @@ export function toAgentDto(row: AgentRow): Agent {
     description: row.description,
     provider: row.provider as Provider,
     model: row.model,
-    system_prompt: row.systemPrompt,
+    prompt: row.systemPrompt,
     output_schema: row.outputSchema ?? null,
     enabled: row.enabled,
     version: row.version,
     strategy: row.strategy as ReviewStrategy,
-    ci_fail_on: row.ciFailOn as CiFailOn,
+    fail_policy: row.ciFailOn as CiFailOn,
     repo_intel: row.repoIntel,
   };
 }
