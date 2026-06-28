@@ -1,0 +1,1 @@
+export { SmartDiffTab } from "./SmartDiffTab";
