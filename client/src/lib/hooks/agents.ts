@@ -80,6 +80,28 @@ export function useDeleteAgent() {
   });
 }
 
+/** Skills linked to an agent (ordered). */
+export function useAgentSkills(agentId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["agent-skills", agentId],
+    queryFn: () => api.get<{ agent_id: string; skill_id: string; order: number }[]>(`/agents/${agentId}/skills`),
+    enabled: !!agentId,
+  });
+}
+
+/** Set the full ordered list of skill ids linked to an agent. */
+export function useSetAgentSkills(agentId: string | null | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (skillIds: string[]) =>
+      api.post<{ agent_id: string; skill_id: string; order: number }[]>(`/agents/${agentId}/skills`, { skill_ids: skillIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agent-skills", agentId] });
+      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+    },
+  });
+}
+
 /** Dynamic model list for a provider (editor model picker). */
 export function useProviderModels(provider: Provider | null | undefined) {
   return useQuery({

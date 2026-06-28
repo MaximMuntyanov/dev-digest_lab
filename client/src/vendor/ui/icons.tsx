@@ -6,6 +6,7 @@ import {
   Layers,
   Sparkles,
   Brain,
+  Package,
   DollarSign,
   History,
   Calendar,
@@ -79,6 +80,8 @@ import {
   Workflow,
   PanelRight,
   CornerDownRight,
+  BookOpen,
+  Scale,
   type LucideIcon,
 } from "lucide-react";
 
@@ -88,6 +91,7 @@ export const Icon = {
   Layers,
   Sparkles,
   Brain,
+  Package,
   DollarSign,
   History,
   Calendar,
@@ -162,6 +166,8 @@ export const Icon = {
   Workflow,
   PanelRight,
   CornerDownRight,
+  BookOpen,
+  Scale,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof Icon;

@@ -26,6 +26,13 @@ export const NAV: NavGroup[] = [
       { key: "agents", label: "Agents", icon: "Cpu", href: "/agents", gKey: "a" },
     ],
   },
+  {
+    section: "SKILLS LAB",
+    items: [
+      { key: "skills", label: "Skills", icon: "BookOpen", href: "/skills", gKey: "s" },
+      { key: "conventions", label: "Conventions", icon: "Scale", href: "/repos/:repoId/conventions", gKey: "c" },
+    ],
+  },
 ];
 
 export const SETTINGS_ITEM: NavItemDef = {
