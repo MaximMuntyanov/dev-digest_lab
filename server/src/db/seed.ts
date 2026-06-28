@@ -1,11 +1,17 @@
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createDb, type Db } from './client.js';
 import * as t from './schema.js';
 import { eq, and } from 'drizzle-orm';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import {
   GENERAL_REVIEWER_PROMPT,
   SECURITY_REVIEWER_PROMPT,
   PERFORMANCE_REVIEWER_PROMPT,
+  API_CONTRACT_REVIEWER_PROMPT,
 } from './seed-prompts.js';
 
 /** Default provider/model for the built-in reviewer agents. */
@@ -211,6 +217,17 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       version: 1,
       createdBy: userId,
     },
+    {
+      workspaceId,
+      name: 'API Contract Reviewer',
+      description: 'Guards API stability: catches breaking changes, schema drift, missing deprecation, and semver violations.',
+      provider: DEFAULT_PROVIDER,
+      model: DEFAULT_MODEL,
+      systemPrompt: API_CONTRACT_REVIEWER_PROMPT,
+      enabled: true,
+      version: 1,
+      createdBy: userId,
+    },
   ];
   for (const a of seedAgents) {
     const [existing] = await db
@@ -218,6 +235,77 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       .from(t.agents)
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.name, a.name)));
     if (!existing) await db.insert(t.agents).values(a);
+  }
+
+  // ---- API Contract Reviewer skills ----
+  const readSkill = (name: string) =>
+    readFileSync(join(__dirname, 'skills', name), 'utf-8');
+
+  const apiContractSkills: Array<{
+    name: string;
+    description: string;
+    body: string;
+  }> = [
+    {
+      name: 'Breaking Change Detection',
+      description: 'Flag removal, rename, or type change of public API surfaces.',
+      body: readSkill('breaking-change.md'),
+    },
+    {
+      name: 'Response Schema Consistency',
+      description: 'Detect drift between declared API schemas and actual responses.',
+      body: readSkill('response-schema.md'),
+    },
+    {
+      name: 'Semver Discipline',
+      description: 'Enforce semantic versioning rules for API changes.',
+      body: readSkill('semver-discipline.md'),
+    },
+    {
+      name: 'Deprecation Policy',
+      description: 'Enforce proper deprecation lifecycle for API endpoints and fields.',
+      body: readSkill('deprecation-policy.md'),
+    },
+  ];
+
+  const skillIds: string[] = [];
+  for (const sk of apiContractSkills) {
+    const [existing] = await db
+      .select()
+      .from(t.skills)
+      .where(and(eq(t.skills.workspaceId, workspaceId), eq(t.skills.name, sk.name)));
+    if (existing) {
+      skillIds.push(existing.id);
+    } else {
+      const [row] = await db
+        .insert(t.skills)
+        .values({
+          workspaceId,
+          name: sk.name,
+          description: sk.description,
+          type: 'rubric',
+          source: 'manual',
+          body: sk.body,
+          enabled: true,
+          version: 1,
+        })
+        .returning();
+      skillIds.push(row!.id);
+    }
+  }
+
+  // Link skills to the API Contract Reviewer agent
+  const [apiAgent] = await db
+    .select()
+    .from(t.agents)
+    .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.name, 'API Contract Reviewer')));
+  if (apiAgent) {
+    for (let i = 0; i < skillIds.length; i++) {
+      await db
+        .insert(t.agentSkills)
+        .values({ agentId: apiAgent.id, skillId: skillIds[i]!, order: i })
+        .onConflictDoNothing();
+    }
   }
 
   return { workspaceId, userId };
