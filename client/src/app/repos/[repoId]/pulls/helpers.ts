@@ -1,4 +1,5 @@
-import { SIZE_MEDIUM_MAX, SIZE_SMALL_MAX, type PrMeta, type SizeInfo } from "./constants";
+import { SIZE_MEDIUM_MAX, SIZE_SMALL_MAX, type SizeInfo } from "./constants";
+import type { PrMeta } from "../../../../lib/types";
 
 /** Bucket a PR into S/M/L by total changed lines. */
 export function sizeOf(pr: PrMeta): SizeInfo {
@@ -18,4 +19,11 @@ export function relativeTime(iso: string | null | undefined): string {
   const h = Math.round(m / 60);
   if (h < 24) return `${h}h`;
   return `${Math.round(h / 24)}d`;
+}
+
+/** Format a USD cost value for display (e.g. "$0.0042" or "$1.23"). */
+export function formatCost(usd: number): string {
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  if (usd < 1) return `$${usd.toFixed(3)}`;
+  return `$${usd.toFixed(2)}`;
 }

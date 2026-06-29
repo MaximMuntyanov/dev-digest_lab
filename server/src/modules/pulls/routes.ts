@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
 import { PrCommentInput } from '@devdigest/shared';
 import * as t from '../../db/schema.js';
@@ -111,27 +111,63 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       }
     }
 
-    // Latest-review SCORE per PR for the list's score ring. Computed on read
-    // from reviews (no FK denorm); the list is small, so one IN-query + JS
-    // grouping is cheap. (The per-severity FINDINGS breakdown is intentionally
-    // not surfaced on the list — findings live on the PR detail page.)
     const prIds = rows.map((r) => r.id);
     const latestReviewByPr = new Map<string, { score: number | null }>();
+    const findingsSummaryByPr = new Map<string, { critical: number; warning: number; suggestion: number }>();
+    const costByPr = new Map<string, number>();
+
     if (prIds.length > 0) {
       const reviewRows = await container.db
         .select({ prId: t.reviews.prId, score: t.reviews.score })
         .from(t.reviews)
         .where(and(inArray(t.reviews.prId, prIds), eq(t.reviews.kind, 'review')))
         .orderBy(desc(t.reviews.createdAt));
-      // Rows are newest-first → first seen per PR is the latest review.
       for (const rv of reviewRows) {
         if (!latestReviewByPr.has(rv.prId)) latestReviewByPr.set(rv.prId, { score: rv.score });
+      }
+
+      const findingRows = await container.db
+        .select({
+          prId: t.reviews.prId,
+          severity: t.findings.severity,
+          cnt: sql<number>`count(*)::int`,
+        })
+        .from(t.findings)
+        .innerJoin(t.reviews, eq(t.findings.reviewId, t.reviews.id))
+        .where(and(inArray(t.reviews.prId, prIds), eq(t.reviews.kind, 'review')))
+        .groupBy(t.reviews.prId, t.findings.severity);
+      for (const row of findingRows) {
+        const s = findingsSummaryByPr.get(row.prId) ?? { critical: 0, warning: 0, suggestion: 0 };
+        if (row.severity === 'CRITICAL') s.critical = row.cnt;
+        else if (row.severity === 'WARNING') s.warning = row.cnt;
+        else if (row.severity === 'SUGGESTION') s.suggestion = row.cnt;
+        findingsSummaryByPr.set(row.prId, s);
+      }
+
+      const costRows = await container.db
+        .select({
+          prId: t.agentRuns.prId,
+          model: t.agentRuns.model,
+          tokensIn: t.agentRuns.tokensIn,
+          tokensOut: t.agentRuns.tokensOut,
+        })
+        .from(t.agentRuns)
+        .where(and(
+          inArray(t.agentRuns.prId!, prIds),
+          eq(t.agentRuns.status, 'done'),
+        ));
+      for (const cr of costRows) {
+        if (!cr.model || cr.tokensIn == null || cr.tokensOut == null || !cr.prId) continue;
+        const c = container.priceBook.estimate(cr.model, cr.tokensIn, cr.tokensOut);
+        if (c != null) costByPr.set(cr.prId, (costByPr.get(cr.prId) ?? 0) + c);
       }
     }
 
     const now = Date.now();
     return rows.map((r) => {
       const review = latestReviewByPr.get(r.id);
+      const fs = findingsSummaryByPr.get(r.id) ?? null;
+      const cost = costByPr.get(r.id) ?? null;
       return {
         id: r.id,
         number: r.number,
@@ -153,6 +189,8 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         opened_at: r.openedAt?.toISOString() ?? null,
         updated_at: r.updatedAt?.toISOString() ?? null,
         score: review ? review.score : null,
+        cost_usd: cost,
+        findings_summary: fs,
       };
     });
   });

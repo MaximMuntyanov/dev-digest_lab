@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "stop": [
+      {
+        "command": "bash .claude/hooks/engineering-insights.sh",
+        "description": "Auto-capture engineering insights after each Claude session"
+      }
+    ]
+  }
+}

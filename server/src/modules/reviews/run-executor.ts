@@ -8,6 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import { estimateCost } from '../../adapters/llm/pricing.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -252,6 +253,8 @@ export class ReviewRunExecutor {
         error: null,
       });
 
+      const costUsd = estimateCost(agent.model, tokensIn, tokensOut);
+
       const trace: RunTrace = {
         config: {
           agent: agent.name,
@@ -267,6 +270,7 @@ export class ReviewRunExecutor {
           tokens_out: tokensOut,
           findings: findingRows.length,
           grounding,
+          cost_usd: costUsd,
         },
         prompt_assembly: outcome.assembly,
         tool_calls: outcome.chunks.map((c) => ({
