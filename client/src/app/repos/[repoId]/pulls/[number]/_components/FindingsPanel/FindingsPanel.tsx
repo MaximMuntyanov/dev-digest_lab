@@ -1,15 +1,16 @@
-/* FindingsPanel — hide-low-confidence + j/k navigation + FindingCard list,
+/* FindingsPanel — severity counters with click-to-filter,
+   hide-low-confidence toggle, j/k navigation + FindingCard list,
    wiring the accept/dismiss action hook (A2). */
 "use client";
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Toggle, EmptyState } from "@devdigest/ui";
-import type { FindingRecord } from "@devdigest/shared";
+import { Toggle, EmptyState, SeverityBadge } from "@devdigest/ui";
+import type { FindingRecord, Severity } from "@devdigest/shared";
 import { FindingCard } from "../FindingCard";
 import { useFindingAction } from "../../../../../../../lib/hooks/reviews";
-import { KEY_TO_ACTION } from "./constants";
-import { visibleFindings } from "./helpers";
+import { KEY_TO_ACTION, SEVERITY_KEYS } from "./constants";
+import { visibleFindings, countBySeverity } from "./helpers";
 import { s } from "./styles";
 
 export function FindingsPanel({
@@ -26,9 +27,17 @@ export function FindingsPanel({
   const t = useTranslations("prReview");
   const action = useFindingAction();
   const [hideLow, setHideLow] = React.useState(false);
+  const [severityFilter, setSeverityFilter] = React.useState<Severity | null>(null);
   const [focusIdx, setFocusIdx] = React.useState(0);
 
-  const shown = React.useMemo(() => visibleFindings(findings, hideLow), [findings, hideLow]);
+  const counts = React.useMemo(() => countBySeverity(findings), [findings]);
+  const shown = React.useMemo(
+    () => visibleFindings(findings, hideLow, severityFilter),
+    [findings, hideLow, severityFilter],
+  );
+
+  const toggleSeverity = (sev: Severity) =>
+    setSeverityFilter((prev) => (prev === sev ? null : sev));
 
   // j/k navigation + a/d shortcuts on the focused finding (keyboard).
   React.useEffect(() => {
@@ -48,6 +57,23 @@ export function FindingsPanel({
   return (
     <div>
       <div style={s.toolbar}>
+        <div style={s.counterBar}>
+          {SEVERITY_KEYS.map((sev) => (
+            <div
+              key={sev}
+              role="button"
+              aria-pressed={severityFilter === sev}
+              aria-label={`Filter by ${sev.toLowerCase()}`}
+              style={s.counterChip(severityFilter === null || severityFilter === sev)}
+              onClick={() => toggleSeverity(sev)}
+            >
+              <SeverityBadge severity={sev} count={counts[sev]} />
+            </div>
+          ))}
+        </div>
+
+        <div style={s.divider} />
+
         <div style={s.toggleGroup}>
           {t("panel.hideLowConfidence")}
           <Toggle on={hideLow} onChange={setHideLow} size={16} />

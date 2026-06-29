@@ -48,7 +48,8 @@
     "cancelled": "cancelled",
     "running": "running",
     "findings": "{count} finding(s)",
-    "blockers": " · {count} blockers"
+    "blockers": " · {count} blockers",
+    "cost": " · ${cost}"
   },
   "smartDiff": {
     "coreLabel": "Core",
@@ -91,6 +92,8 @@
       "author": "Author",
       "size": "Size",
       "score": "Score",
+      "findings": "Findings",
+      "cost": "Cost",
       "status": "Status",
       "updated": "Updated"
     },

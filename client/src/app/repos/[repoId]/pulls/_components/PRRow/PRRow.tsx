@@ -1,22 +1,27 @@
-/* PRRow — one clickable row in the PR list table. Ported from screen_dashboard.jsx. */
+/* PRRow — one clickable row in the PR list table. */
 "use client";
 
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Icon, Avatar, Badge, CircularScore } from "@devdigest/ui";
+import { Icon, Avatar, Badge, CircularScore, SeverityBadge } from "@devdigest/ui";
 import type { PrMeta } from "@/lib/types";
 import { SIZE_COLOR, STATUS_META } from "../../constants";
-import { relativeTime, sizeOf } from "../../helpers";
+import { relativeTime, sizeOf, formatCost } from "../../helpers";
 import { s } from "../../styles";
+import { FindingsPopup } from "../FindingsPopup";
 
 export function PRRow({ pr, repoId }: { pr: PrMeta; repoId: string }) {
   const t = useTranslations("prReview");
   const router = useRouter();
   const [h, setH] = React.useState(false);
+  const [popupOpen, setPopupOpen] = React.useState(false);
   const st = STATUS_META[pr.status] ?? STATUS_META.needs_review!;
   const { size, lines } = sizeOf(pr);
-  const reviewed = pr.score != null; // null score ⇒ PR has never been reviewed
+  const reviewed = pr.score != null;
+  const fs = pr.findings_summary;
+  const hasFindings = fs && (fs.critical > 0 || fs.warning > 0 || fs.suggestion > 0);
+
   return (
     <div
       onMouseEnter={() => setH(true)}
@@ -49,6 +54,34 @@ export function PRRow({ pr, repoId }: { pr: PrMeta; repoId: string }) {
       <div style={s.scoreCell}>
         {reviewed ? (
           <CircularScore score={pr.score!} size={34} stroke={3} />
+        ) : (
+          <span style={s.muted}>—</span>
+        )}
+      </div>
+      <div style={{ position: "relative" }}>
+        {hasFindings ? (
+          <div
+            style={s.findingsBadges}
+            onClick={(e) => { e.stopPropagation(); setPopupOpen((o) => !o); }}
+          >
+            {fs.critical > 0 && <SeverityBadge severity="CRITICAL" count={fs.critical} compact />}
+            {fs.warning > 0 && <SeverityBadge severity="WARNING" count={fs.warning} compact />}
+            {fs.suggestion > 0 && <SeverityBadge severity="SUGGESTION" count={fs.suggestion} compact />}
+          </div>
+        ) : (
+          <span style={s.muted}>—</span>
+        )}
+        {popupOpen && hasFindings && (
+          <FindingsPopup
+            summary={fs}
+            onClose={() => setPopupOpen(false)}
+            onViewAll={() => router.push(`/repos/${repoId}/pulls/${pr.number}?tab=findings`)}
+          />
+        )}
+      </div>
+      <div style={s.costCell}>
+        {pr.cost_usd != null ? (
+          <span className="mono" style={{ fontSize: 12 }}>{formatCost(pr.cost_usd)}</span>
         ) : (
           <span style={s.muted}>—</span>
         )}
