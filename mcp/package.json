@@ -1,0 +1,27 @@
+{
+  "name": "@devdigest/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "devdigest-mcp — local MCP server exposing DevDigest review capabilities (agents, run-on-PR, findings, blast radius, conventions) as MCP tools over stdio. Thin client over the @devdigest/api REST surface.",
+  "bin": {
+    "devdigest-mcp": "src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "inspect": "mcp-inspector tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.14.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,4 +1,6 @@
 {
+  "tab": "Blast",
+  "summary": "Blast radius — what this PR's changes can reach",
   "stat": {
     "symbols": "symbols",
     "callers": "callers",
@@ -9,8 +11,28 @@
     "tree": "tree",
     "graph": "graph"
   },
+  "section": {
+    "symbols": "Changed symbols → callers",
+    "endpoints": "Impacted endpoints",
+    "crons": "Scheduled jobs"
+  },
   "callerCount": "{count} callers",
+  "noCallers": "No downstream callers found",
   "noDownstream": "{count} changed symbol(s), no downstream callers found.",
+  "empty": {
+    "title": "No blast radius data",
+    "body": "The changed files aren't in the repo-intel index yet, or nothing depends on them. Re-index the repo from Project Context to populate the impact map."
+  },
+  "degraded": {
+    "partial": "Partial index — the impact map may be incomplete.",
+    "degraded": "Index degraded — showing best-effort results.",
+    "reason": "reason: {reason}"
+  },
+  "error": {
+    "title": "Couldn't load blast radius",
+    "body": "The impact map could not be computed."
+  },
+  "loading": "Computing blast radius…",
   "graph": {
     "empty": "No downstream callers to graph.",
     "ariaLabel": "Blast radius graph"

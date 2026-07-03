@@ -12,6 +12,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { RepoIntelService } from './service.js';
@@ -37,6 +38,25 @@ export default async function repoIntelRoutes(appBase: FastifyInstance) {
       // facade itself is tenant-agnostic (consistent with blast routes).
       await getContext(container, req);
       return container.repoIntel.getIndexState(req.params.id);
+    },
+  );
+
+  app.get(
+    '/repos/:id/conventions',
+    {
+      schema: {
+        params: IdParams,
+        querystring: z.object({ n: z.coerce.number().int().min(1).max(50).optional() }),
+      },
+    },
+    async (req) => {
+      // Read-only: representative high-rank files that show the repo's
+      // conventions, straight from the repo-intel facade (no LLM). Consumed by
+      // the devdigest-mcp `get_conventions` tool.
+      await getContext(container, req);
+      const n = req.query.n ?? 8;
+      const samples = await container.repoIntel.getConventionSamples(req.params.id, n);
+      return { repo_id: req.params.id, count: samples.length, samples };
     },
   );
 
