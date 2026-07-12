@@ -29,6 +29,10 @@ export const agents = pgTable('agents', {
   // + file-rank note) injected into the prompt. Default on; the global
   // REPO_INTEL_ENABLED flag is the second gate (facade degrades when off).
   repoIntel: boolean('repo_intel').notNull().default(true),
+  // L05 Project Context — repo-relative markdown paths (under specs/docs/insights)
+  // manually attached to this agent. Stored as paths, NOT bodies; the run-executor
+  // reads the files at run time and injects them into the `## Project context` slot.
+  contextPaths: jsonb('context_paths').$type<string[]>(),
   enabled: boolean('enabled').notNull().default(true),
   version: integer('version').notNull().default(1),
   createdBy: uuid('created_by').references(() => users.id),
