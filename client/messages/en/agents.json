@@ -45,11 +45,27 @@
     "runOnPr": "Run on a PR…",
     "tabs": {
       "config": "Config",
+      "context": "Context",
       "skills": "Skills",
       "evals": "Evals",
       "stats": "Stats",
       "ci": "CI"
     }
+  },
+  "context": {
+    "title": "Project context",
+    "attached": "{count} of {total} attached",
+    "help": "Order matters — earlier docs appear earlier in the assembled ## Project context block. Toggle to attach.",
+    "filter": "Filter documents…",
+    "preview": "Preview",
+    "tokens": "≈ {tokens} tokens",
+    "footNote": "Injected as an untrusted block (## Project context) into every run.",
+    "empty": "No markdown found under specs/, docs/ or insights/ in the connected repo.",
+    "noRepo": "Connect a repository to attach project context.",
+    "loadError": "Couldn’t load context files",
+    "save": "Save",
+    "saving": "Saving…",
+    "savedToast": "Context saved (v{version})"
   },
   "config": {
     "title": "Configuration",

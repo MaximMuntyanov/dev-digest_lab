@@ -23,6 +23,7 @@ export function toAgentDto(row: AgentRow): Agent {
     strategy: row.strategy as ReviewStrategy,
     ci_fail_on: row.ciFailOn as CiFailOn,
     repo_intel: row.repoIntel,
+    context_paths: row.contextPaths ?? [],
   };
 }
 
@@ -52,6 +53,7 @@ export interface ConfigChangePatch {
   strategy?: ReviewStrategy;
   ciFailOn?: CiFailOn;
   repoIntel?: boolean;
+  contextPaths?: string[];
 }
 
 /**
@@ -69,6 +71,7 @@ export function isConfigChange(
     | 'strategy'
     | 'ciFailOn'
     | 'repoIntel'
+    | 'contextPaths'
   >,
   patch: ConfigChangePatch,
 ): boolean {
@@ -81,6 +84,8 @@ export function isConfigChange(
     (patch.strategy !== undefined && patch.strategy !== existing.strategy) ||
     (patch.ciFailOn !== undefined && patch.ciFailOn !== existing.ciFailOn) ||
     (patch.repoIntel !== undefined && patch.repoIntel !== existing.repoIntel) ||
+    (patch.contextPaths !== undefined &&
+      JSON.stringify(patch.contextPaths) !== JSON.stringify(existing.contextPaths ?? [])) ||
     patch.outputSchema !== undefined
   );
 }

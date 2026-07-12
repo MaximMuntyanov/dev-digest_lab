@@ -182,6 +182,10 @@ export const Agent = z.object({
   // Inject repo-intel context (repo skeleton + callers + rank note) into this
   // agent's review prompt. Default on; gated again by the global flag.
   repo_intel: z.boolean().default(true),
+  // L05 Project Context — repo-relative markdown paths (specs/docs/insights)
+  // manually attached to this agent. Read at run time and injected into the
+  // `## Project context` prompt slot (untrusted). Paths, not bodies.
+  context_paths: z.array(z.string()).default([]),
 });
 export type Agent = z.infer<typeof Agent>;
 

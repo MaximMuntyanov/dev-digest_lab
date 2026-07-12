@@ -8,6 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import { readAttachedContext } from '../context/reader.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -183,6 +184,10 @@ export class ReviewRunExecutor {
 
       const task = taskLine(pull) + rankNote;
 
+      // L05 Project Context — attached specs (paths → bodies from the clone),
+      // injected into the engine's `## Project context` slot. No LLM calls.
+      const projectContext = await this.buildProjectContext(agent, repo, runLog);
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -200,6 +205,8 @@ export class ReviewRunExecutor {
         ...(callersDigest ? { callers: callersDigest } : {}),
         // T3 — repo skeleton, same omit-when-empty contract.
         ...(repoMap ? { repoMap } : {}),
+        // L05 — attached project-context specs (untrusted). Omitted when none.
+        ...(projectContext.specs.length ? { specs: projectContext.specs } : {}),
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
@@ -277,7 +284,7 @@ export class ReviewRunExecutor {
         })),
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: [],
+        specs_read: projectContext.specsRead,
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),
@@ -354,6 +361,41 @@ export class ReviewRunExecutor {
     }
     runLog.info(`callers digest: ${rows.length} caller signature(s) attached`);
     return out.join('\n');
+  }
+
+  /**
+   * L05 Project Context — read the markdown files manually attached to this agent
+   * (`agent.contextPaths`, repo-relative paths under specs/docs/insights) from the
+   * repo clone. We store PATHS, not bodies, and read them here so an edit to a
+   * spec takes effect on the next run without re-saving the agent. Bodies are
+   * injected into the engine's `## Project context` slot (untrusted, delimiter-
+   * wrapped). Zero LLM calls; bounded read; never throws.
+   */
+  private async buildProjectContext(
+    agent: AgentRow,
+    repo: typeof schema.repos.$inferSelect,
+    runLog: RunLogger,
+  ): Promise<{ specs: string[]; specsRead: string[] }> {
+    const paths = agent.contextPaths ?? [];
+    if (paths.length === 0) return { specs: [], specsRead: [] };
+    const cloneRoot =
+      repo.clonePath ?? this.container.git.clonePathFor({ owner: repo.owner, name: repo.name });
+    try {
+      const docs = await readAttachedContext(cloneRoot, paths);
+      if (docs.length === 0) {
+        runLog.info('project context: no attached specs readable in clone');
+        return { specs: [], specsRead: [] };
+      }
+      const specsRead = docs.map((d) => d.path);
+      const chars = docs.reduce((n, d) => n + d.text.length, 0);
+      runLog.info(
+        `project context: ${docs.length} spec(s) attached (${chars} chars) — ${specsRead.join(', ')}`,
+      );
+      return { specs: docs.map((d) => d.text), specsRead };
+    } catch (err) {
+      runLog.info(`project context: read failed — ${(err as Error).message}`);
+      return { specs: [], specsRead: [] };
+    }
   }
 
   /**
