@@ -89,6 +89,106 @@ export const EvalDashboard = z.object({
 export type EvalDashboard = z.infer<typeof EvalDashboard>;
 
 // ===========================================================================
+// L06 Eval Pipeline — expectation kinds, case records, batch runs, dashboard
+// ===========================================================================
+
+/** What an eval case asserts. Derived from the finding's accept/dismiss state. */
+export const EvalExpectationKind = z.enum(['must_find', 'must_not_flag']);
+export type EvalExpectationKind = z.infer<typeof EvalExpectationKind>;
+
+/** The expected finding location an eval case is anchored to (file + line range). */
+export const EvalExpectedFinding = z.object({
+  file: z.string(),
+  start_line: z.number().int(),
+  end_line: z.number().int(),
+  severity: z.string().nullish(),
+  category: z.string().nullish(),
+  title: z.string().nullish(),
+});
+export type EvalExpectedFinding = z.infer<typeof EvalExpectedFinding>;
+
+/** Result of one case inside a batch run (deterministic scoring, no LLM). */
+export const EvalCasePerResult = z.object({
+  case_id: z.string(),
+  case_name: z.string(),
+  expectation_kind: EvalExpectationKind,
+  /** Did the case pass (found for must_find / not-flagged for must_not_flag)? */
+  pass: z.boolean(),
+  expected: EvalExpectedFinding.nullable(),
+  /** Findings the agent emitted that matched this case's file+range. */
+  matched: z.array(EvalExpectedFinding),
+  /** Findings dropped by the grounding gate for this case's file. */
+  grounded_dropped: z.number().int().default(0),
+  note: z.string().nullish(),
+});
+export type EvalCasePerResult = z.infer<typeof EvalCasePerResult>;
+
+/** A persisted eval case (mirrors `eval_cases`) with its latest per-case result. */
+export const EvalCaseRecord = z.object({
+  id: z.string(),
+  owner_kind: EvalOwnerKind,
+  owner_id: z.string(),
+  name: z.string(),
+  expectation_kind: EvalExpectationKind,
+  source_finding_id: z.string().nullable(),
+  input_diff: z.string(),
+  input_files: z.unknown().nullish(),
+  input_meta: z.unknown().nullish(),
+  expected_output: EvalExpectedFinding.nullable(),
+  notes: z.string().nullish(),
+  created_at: z.string(),
+  /** Latest per-case result across all batches (null = never run). */
+  last_result: EvalCasePerResult.nullable(),
+});
+export type EvalCaseRecord = z.infer<typeof EvalCaseRecord>;
+
+/** A batch run = one execution of an agent over ALL its eval cases. */
+export const EvalBatchRecord = z.object({
+  id: z.string(),
+  owner_kind: EvalOwnerKind,
+  owner_id: z.string(),
+  agent_version: z.number().int().nullable(),
+  model: z.string().nullable(),
+  /** System-prompt snapshot at run time (for the compare diff). */
+  system_prompt: z.string().nullable(),
+  ran_at: z.string(),
+  cases_total: z.number().int(),
+  passed: z.number().int(),
+  recall: z.number().nullable(),
+  precision: z.number().nullable(),
+  citation_accuracy: z.number().nullable(),
+  duration_ms: z.number().int().nullable(),
+  cost_usd: z.number().nullable(),
+  /** Per-case breakdown (present on detail/compare, omitted in list views). */
+  results: z.array(EvalCasePerResult).nullish(),
+});
+export type EvalBatchRecord = z.infer<typeof EvalBatchRecord>;
+
+/** Two batch runs compared side by side (old prompt vs new). */
+export const EvalCompare = z.object({
+  a: EvalBatchRecord,
+  b: EvalBatchRecord,
+});
+export type EvalCompare = z.infer<typeof EvalCompare>;
+
+/** One agent row on the global Eval Dashboard. */
+export const EvalDashboardAgent = z.object({
+  agent_id: z.string(),
+  agent_name: z.string(),
+  model: z.string().nullable(),
+  cases_total: z.number().int(),
+  latest: EvalBatchRecord.nullable(),
+});
+export type EvalDashboardAgent = z.infer<typeof EvalDashboardAgent>;
+
+/** The workspace-wide Eval Dashboard: agents + most-recent runs. */
+export const EvalDashboardView = z.object({
+  agents: z.array(EvalDashboardAgent),
+  recent_runs: z.array(EvalBatchRecord),
+});
+export type EvalDashboardView = z.infer<typeof EvalDashboardView>;
+
+// ===========================================================================
 // Compose Review
 // ===========================================================================
 
