@@ -28,6 +28,9 @@ export function FindingCard({
   focused,
   defaultExpanded,
   onAction,
+  onTurnIntoEval,
+  evalPending,
+  evalCreated,
   pending,
   repoFullName,
   headSha,
@@ -36,6 +39,9 @@ export function FindingCard({
   focused?: boolean;
   defaultExpanded?: boolean;
   onAction?: (action: FindingActionKind, reply?: string) => void;
+  onTurnIntoEval?: () => void;
+  evalPending?: boolean;
+  evalCreated?: boolean;
   pending?: boolean;
   repoFullName?: string | null;
   headSha?: string | null;
@@ -109,6 +115,21 @@ export function FindingCard({
             >
               {t("finding.dismiss")}
             </Button>
+            {onTurnIntoEval && (
+              <Button
+                kind="ghost"
+                size="sm"
+                icon="FlaskConical"
+                disabled={evalPending || evalCreated}
+                onClick={() => onTurnIntoEval()}
+              >
+                {evalCreated
+                  ? t("finding.evalCreated")
+                  : evalPending
+                    ? t("finding.evalCreating")
+                    : t("finding.turnIntoEval")}
+              </Button>
+            )}
           </div>
         </div>
       )}
