@@ -8,6 +8,8 @@ import { Toggle, EmptyState } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
 import { FindingCard } from "../FindingCard";
 import { useFindingAction } from "../../../../../../../lib/hooks/reviews";
+import { useCreateEvalCaseFromFinding } from "../../../../../../../lib/hooks/eval";
+import { useToast } from "../../../../../../../lib/toast";
 import { KEY_TO_ACTION } from "./constants";
 import { visibleFindings } from "./helpers";
 import { s } from "./styles";
@@ -25,8 +27,24 @@ export function FindingsPanel({
 }) {
   const t = useTranslations("prReview");
   const action = useFindingAction();
+  const createEval = useCreateEvalCaseFromFinding();
+  const toast = useToast();
   const [hideLow, setHideLow] = React.useState(false);
   const [focusIdx, setFocusIdx] = React.useState(0);
+  const [evalCreated, setEvalCreated] = React.useState<Set<string>>(new Set());
+  const [evalPendingId, setEvalPendingId] = React.useState<string | null>(null);
+
+  const turnIntoEval = (findingId: string) => {
+    setEvalPendingId(findingId);
+    createEval.mutate(findingId, {
+      onSuccess: (c) => {
+        setEvalCreated((prev) => new Set(prev).add(findingId));
+        toast.success(t("finding.evalCreatedToast", { name: c.name }));
+      },
+      onError: () => toast.error(t("finding.evalError")),
+      onSettled: () => setEvalPendingId(null),
+    });
+  };
 
   const shown = React.useMemo(() => visibleFindings(findings, hideLow), [findings, hideLow]);
 
@@ -68,6 +86,9 @@ export function FindingsPanel({
               repoFullName={repoFullName}
               headSha={headSha}
               onAction={(act) => action.mutate({ findingId: f.id, action: act, prId })}
+              onTurnIntoEval={() => turnIntoEval(f.id)}
+              evalPending={evalPendingId === f.id}
+              evalCreated={evalCreated.has(f.id)}
             />
           ))
         )}

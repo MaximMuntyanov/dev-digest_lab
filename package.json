@@ -1,0 +1,9 @@
+{
+  "name": "dev-digest-lab",
+  "version": "0.0.0",
+  "private": true,
+  "description": "DevDigest lab — root script holder (per-package configs live in server/ and client/).",
+  "scripts": {
+    "verify:l06": "bash scripts/verify-l06.sh"
+  }
+}

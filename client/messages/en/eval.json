@@ -1,13 +1,20 @@
 {
   "dashboard": {
     "defaultTitle": "Eval Dashboard",
+    "subtitle": "Regression harness across all reviewer agents — pick an agent to see its runs.",
+    "runAllAgents": "Run all agents",
+    "ranAllToast": "Ran evals for {count} agents",
+    "agentsHeading": "AGENTS",
+    "emptyAgents": "No eval cases yet. Turn accepted/dismissed findings into eval cases from a PR to get started.",
+    "lastRun": "Last run v{version} · {date} · {passed}/{total} pass",
+    "agentNoRuns": "{count, plural, one {# case} other {# cases}} · never run",
     "loading": "Loading eval metrics…",
     "casesSummary": "{count, plural, one {# eval case} other {# eval cases}} · gold set · {runs, plural, one {# run} other {# runs}}",
     "configure": "Configure eval cases →",
     "runEval": "Run eval ({count})",
     "running": "Running…",
     "metricTrend": "Metric trend",
-    "recentRuns": "Recent runs",
+    "recentRuns": "RECENT EVAL RUNS · ALL AGENTS",
     "noRuns": "No runs yet. Create an eval case and run it.",
     "metrics": {
       "recall": "RECALL",
@@ -60,18 +67,35 @@
   "evalsTab": {
     "metricsTitle": "Eval metrics",
     "metricsSubtitle": "Recall / Precision / Citation for this agent's eval cases",
+    "tracesPassed": "TRACES PASSED",
     "casesHeading": "Eval cases",
+    "passingCount": "{passing} / {total} passing",
     "newCase": "New case",
     "loadingCases": "Loading cases…",
-    "emptyCases": "No eval cases yet. Create one to assert this agent's expected findings on a sample diff.",
+    "emptyCases": "No eval cases yet. Turn an accepted/dismissed finding into an eval case from a PR to build the set.",
     "neverRun": "never run",
     "passed": "passed",
     "failed": "failed",
     "recallSuffix": " · recall {recall}%",
     "run": "Run",
+    "runAll": "Run all evals",
     "running": "Running…",
+    "ranToast": "Eval run complete — {passed}/{total} passed",
+    "runError": "Eval run failed",
+    "historyHeading": "Run history",
+    "compare": "Compare",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "kind": {
+      "must_find": "must find",
+      "must_not_flag": "must not flag"
+    }
+  },
+  "compare": {
+    "title": "Compare runs · v{av} → v{bv}",
+    "subtitle": "Old prompt vs new — metric deltas and the system-prompt diff",
+    "old": "v{v} (old)",
+    "new": "v{v} (new)"
   },
   "page": {
     "crumbSkillsLab": "Skills Lab",

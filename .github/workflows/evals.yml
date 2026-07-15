@@ -1,0 +1,129 @@
+# Harness evals — tests for the Claude Code harness itself (.claude/skills, .claude/agents,
+# CLAUDE.md) that live in evals/. Two jobs:
+#
+#   quality  — the zero-token static gate (eval:quality) + typecheck. Always runs, BLOCKING.
+#   llm      — the LLM-judged + trace tiers, targeted to what this PR changed (ci-detect.mjs).
+#              Runs only when an OPENROUTER_API_KEY secret is configured (CI has no Claude
+#              subscription), via EVAL_BACKEND=openrouter. Skips cleanly otherwise.
+name: evals
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - 'evals/**'
+      - 'reviewer-core/src/**'
+      - 'server/docs/**'
+      - '.github/workflows/evals.yml'
+  pull_request:
+    paths:
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - 'evals/**'
+      - 'reviewer-core/src/**'
+      - 'server/docs/**'
+      - '.github/workflows/evals.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality gate (no tokens)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Tier 0 — static SKILL.md structure/frontmatter/link checks. Blocking.
+      - run: pnpm eval:quality
+
+      - run: pnpm typecheck
+
+  llm:
+    name: llm tiers (targeted)
+    needs: quality
+    runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      EVAL_BACKEND: openrouter
+    steps:
+      - name: Skip when no backend secret
+        if: ${{ env.OPENROUTER_API_KEY == '' }}
+        run: echo "OPENROUTER_API_KEY not set — skipping LLM eval tiers (quality gate already passed)."
+
+      - uses: actions/checkout@v4
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - name: Install evals deps
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        working-directory: evals
+        run: pnpm install --frozen-lockfile
+
+      - name: Detect changed artifacts
+        id: detect
+        if: ${{ env.OPENROUTER_API_KEY != '' }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+          else
+            CHANGED="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" || git show --name-only --format= HEAD)"
+          fi
+          echo "changed files:"; echo "$CHANGED"
+          CHANGED_FILES="$CHANGED" node evals/scripts/ci-detect.mjs
+
+      - name: Run skill content evals
+        if: ${{ env.OPENROUTER_API_KEY != '' && steps.detect.outputs.skills != '[]' }}
+        working-directory: evals
+        run: |
+          for n in $(echo '${{ steps.detect.outputs.skills }}' | jq -r '.[]'); do
+            echo "::group::skill $n"; pnpm vitest run "skills/$n"; echo "::endgroup::"
+          done
+
+      - name: Run agent content evals
+        if: ${{ env.OPENROUTER_API_KEY != '' && steps.detect.outputs.agents != '[]' }}
+        working-directory: evals
+        run: |
+          for n in $(echo '${{ steps.detect.outputs.agents }}' | jq -r '.[]'); do
+            echo "::group::agent $n"; pnpm vitest run "agents/$n"; echo "::endgroup::"
+          done
+
+      - name: Run workflow tier
+        if: ${{ env.OPENROUTER_API_KEY != '' && steps.detect.outputs.run_workflow == 'true' }}
+        working-directory: evals
+        run: pnpm eval:workflow
