@@ -1,101 +1,60 @@
 {
-  "page": {
-    "crumbLab": "Skills Lab",
-    "crumbSkills": "Skills",
-    "heading": "Skills",
-    "addSkill": "Add Skill",
-    "searchPlaceholder": "Search skills…",
-    "loadError": "Could not load skills.",
-    "menu": {
-      "fromFile": "Import from file",
-      "fromUrl": "Import from URL",
-      "community": "Search community skills…"
-    },
-    "empty": {
-      "title": "No skills yet",
-      "body": "Import a skill from a file, a URL, or the community catalog.",
-      "cta": "Import from file"
-    },
-    "selectPrompt": {
-      "title": "Select a skill",
-      "body": "Pick a skill on the left to preview its body."
-    }
-  },
-  "detail": {
-    "crumbSkill": "Skill",
-    "back": "← All skills",
-    "loadError": "Could not load this skill.",
-    "notFound": {
-      "title": "Skill not found",
-      "body": "It may have been deleted."
-    }
-  },
-  "drawer": {
-    "title": "Add a skill",
-    "subtitle": "Import from a file, a URL, or search vetted community skills",
-    "tabs": {
-      "file": "From file",
-      "url": "From URL",
-      "community": "Community"
-    },
-    "importFailed": "Import failed"
-  },
-  "file": {
-    "nameLabel": "Skill name",
-    "nameHint": "Optional — derived from the first heading if blank.",
-    "namePlaceholder": "pr-quality-rubric",
-    "bodyLabel": "Skill body (Markdown)",
-    "bodyHint": "Pasted content is wrapped as untrusted data — never executed as instructions.",
-    "bodyPlaceholder": "# Rule\nDescribe the rule…",
-    "importing": "Importing…",
-    "import": "Import skill",
-    "success": "Imported \"{name}\" (stored as untrusted data)."
-  },
-  "url": {
-    "label": "Skill URL",
-    "hint": "Fetched server-side, stored as untrusted, and left disabled until vetted.",
-    "placeholder": "https://example.com/skills/security.md",
-    "fetching": "Fetching…",
-    "import": "Import from URL",
-    "success": "Imported \"{name}\". Disabled until you vet + enable it."
-  },
-  "community": {
-    "searchPlaceholder": "Search community skills (e.g. security)…",
-    "allLanguages": "All languages",
-    "loadError": "Could not load community skills",
-    "retry": "Retry",
-    "noMatch": {
-      "title": "No matching skills",
-      "body": "Try a different search term."
-    },
-    "importing": "Importing…",
-    "import": "Import"
-  },
-  "listItem": {
-    "needsVetting": "needs vetting",
-    "vettingTitle": "Untrusted source — vet before enabling",
-    "type": {
-      "rubric": "rubric",
-      "convention": "convention",
-      "security": "security",
-      "custom": "custom"
-    },
-    "source": {
-      "manual": "Manual",
-      "extracted": "Extracted",
-      "community": "Community",
-      "imported_url": "Imported"
-    }
-  },
-  "preview": {
-    "untrustedBadge": "untrusted source",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
-    "save": "Save",
-    "edit": "Edit",
-    "untrustedNotice": "This skill came from an untrusted source. Its body is stored as data (delimiter-wrapped) and must be vetted before it is enabled for an agent.",
-    "bodyLabel": "Skill body (Markdown)",
-    "bodyHint": "Saving a changed body creates a new immutable version.",
+  "list": {
+    "breadcrumbLab": "Skills Lab",
+    "breadcrumb": "Skills",
+    "title": "Skills",
+    "subtitle": "Reusable review rubrics. Attach to agents; measure their contribution with evals.",
+    "add": "Add skill",
+    "search": "Search skills…",
+    "empty": "No skills yet — create one to start.",
+    "loadError": "Couldn’t load skills",
+    "typeLabel": "Type",
     "version": "v{version}"
+  },
+  "create": {
+    "title": "New skill",
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "body": "Body (the rubric)",
+    "bodyPlaceholder": "Rules the reviewer should apply, one per line…",
+    "create": "Create skill",
+    "cancel": "Cancel",
+    "creating": "Creating…"
+  },
+  "editor": {
+    "tabs": { "config": "Config", "evals": "Evals" },
+    "runOnPr": "Run on a PR…",
+    "disabled": "disabled"
+  },
+  "config": {
+    "title": "Configuration",
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "body": "Body (the rubric)",
+    "bodyHint": "The skill content injected into a review. Editing it bumps the version.",
+    "enabled": "Enabled",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved (v{version})",
+    "savedToast": "Skill saved (v{version})"
+  },
+  "evals": {
+    "addCase": "Add case",
+    "addCaseTitle": "New skill eval case",
+    "caseName": "Case name",
+    "caseDiff": "Input diff (unified)",
+    "caseDiffPlaceholder": "--- a/file.ts\n+++ b/file.ts\n@@ ... @@\n+ offending line",
+    "caseKind": "Expectation",
+    "expectedFile": "Expected file",
+    "expectedStart": "Start line",
+    "expectedEnd": "End line",
+    "create": "Create case",
+    "creating": "Creating…",
+    "createdToast": "Eval case created",
+    "createError": "Couldn’t create the case",
+    "cancel": "Cancel",
+    "emptyHint": "No eval cases for this skill yet. Add one to measure the skill’s effect."
   }
 }

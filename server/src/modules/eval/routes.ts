@@ -119,4 +119,91 @@ export default async function evalRoutes(appBase: FastifyInstance) {
     const { workspaceId } = await getContext(container, req);
     return service.dashboard(container, workspaceId);
   });
+
+  // ---- Skills Lab: skill-scoped evals (owner_kind = 'skill') -------------------
+
+  const SkillCaseBody = z.object({
+    name: z.string().min(1),
+    input_diff: z.string().min(1),
+    expectation_kind: z.enum(['must_find', 'must_not_flag']).default('must_find'),
+    expected: z
+      .object({
+        file: z.string(),
+        start_line: z.number().int(),
+        end_line: z.number().int(),
+        severity: z.string().nullish(),
+        category: z.string().nullish(),
+        title: z.string().nullish(),
+      })
+      .nullish(),
+    notes: z.string().nullish(),
+  });
+
+  app.get(
+    '/skills/:id/eval-cases',
+    { schema: { params: IdParams } },
+    async (req): Promise<EvalCaseRecord[]> => {
+      const { workspaceId } = await getContext(container, req);
+      return service.listSkillCases(container, workspaceId, req.params.id);
+    },
+  );
+
+  app.post(
+    '/skills/:id/eval-cases',
+    { schema: { params: IdParams, body: SkillCaseBody } },
+    async (req): Promise<EvalCaseRecord> => {
+      const { workspaceId } = await getContext(container, req);
+      const b = req.body;
+      return service.createSkillCase(container, workspaceId, req.params.id, {
+        name: b.name,
+        inputDiff: b.input_diff,
+        expectationKind: b.expectation_kind,
+        expected: b.expected
+          ? {
+              file: b.expected.file,
+              start_line: b.expected.start_line,
+              end_line: b.expected.end_line,
+              severity: b.expected.severity ?? null,
+              category: b.expected.category ?? null,
+              title: b.expected.title ?? null,
+            }
+          : null,
+        notes: b.notes ?? null,
+      });
+    },
+  );
+
+  app.post(
+    '/skills/:id/eval-runs',
+    {
+      schema: { params: IdParams },
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (req): Promise<EvalBatchRecord> => {
+      const { workspaceId } = await getContext(container, req);
+      const batch = await service.runSkillBatch(container, workspaceId, req.params.id);
+      req.log.info(
+        {
+          skillId: req.params.id,
+          cases_total: batch.cases_total,
+          passed: batch.passed,
+          recall: batch.recall,
+          precision: batch.precision,
+          citation_accuracy: batch.citation_accuracy,
+          scoring: 'code-only',
+        },
+        'skill eval batch',
+      );
+      return batch;
+    },
+  );
+
+  app.get(
+    '/skills/:id/eval-runs',
+    { schema: { params: IdParams } },
+    async (req): Promise<EvalBatchRecord[]> => {
+      const { workspaceId } = await getContext(container, req);
+      return service.listSkillRuns(container, workspaceId, req.params.id);
+    },
+  );
 }

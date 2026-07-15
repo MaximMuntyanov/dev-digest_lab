@@ -56,6 +56,7 @@ function batchToRecord(row: BatchRow, results?: EvalCasePerResult[]): EvalBatchR
 
 export interface CreateCaseInput {
   workspaceId: string;
+  ownerKind?: 'skill' | 'agent';
   ownerId: string;
   name: string;
   expectationKind: EvalExpectationKind;
@@ -71,7 +72,7 @@ export async function createCase(db: Db, input: CreateCaseInput): Promise<CaseRo
     .insert(t.evalCases)
     .values({
       workspaceId: input.workspaceId,
-      ownerKind: 'agent',
+      ownerKind: input.ownerKind ?? 'agent',
       ownerId: input.ownerId,
       name: input.name,
       expectationKind: input.expectationKind,
@@ -106,11 +107,12 @@ export async function deleteCase(db: Db, workspaceId: string, caseId: string): P
   return rows.length > 0;
 }
 
-/** All cases owned by an agent, each with its latest per-case result. */
-export async function listAgentCases(
+/** All cases owned by (ownerKind, ownerId), each with its latest per-case result. */
+export async function listCasesByOwner(
   db: Db,
   workspaceId: string,
-  agentId: string,
+  ownerId: string,
+  ownerKind: 'skill' | 'agent' = 'agent',
 ): Promise<EvalCaseRecord[]> {
   const rows = await db
     .select()
@@ -118,8 +120,8 @@ export async function listAgentCases(
     .where(
       and(
         eq(t.evalCases.workspaceId, workspaceId),
-        eq(t.evalCases.ownerKind, 'agent'),
-        eq(t.evalCases.ownerId, agentId),
+        eq(t.evalCases.ownerKind, ownerKind),
+        eq(t.evalCases.ownerId, ownerId),
       ),
     )
     .orderBy(desc(t.evalCases.createdAt));
@@ -132,10 +134,11 @@ export async function listAgentCases(
 }
 
 /** Bare case rows for the runner (no per-case-result join). */
-export async function agentCaseRows(
+export async function caseRowsByOwner(
   db: Db,
   workspaceId: string,
-  agentId: string,
+  ownerId: string,
+  ownerKind: 'skill' | 'agent' = 'agent',
 ): Promise<CaseRow[]> {
   return db
     .select()
@@ -143,12 +146,20 @@ export async function agentCaseRows(
     .where(
       and(
         eq(t.evalCases.workspaceId, workspaceId),
-        eq(t.evalCases.ownerKind, 'agent'),
-        eq(t.evalCases.ownerId, agentId),
+        eq(t.evalCases.ownerKind, ownerKind),
+        eq(t.evalCases.ownerId, ownerId),
       ),
     )
     .orderBy(desc(t.evalCases.createdAt));
 }
+
+/** All cases owned by an agent (back-compat wrapper). */
+export const listAgentCases = (db: Db, workspaceId: string, agentId: string) =>
+  listCasesByOwner(db, workspaceId, agentId, 'agent');
+
+/** Bare agent case rows for the runner (back-compat wrapper). */
+export const agentCaseRows = (db: Db, workspaceId: string, agentId: string) =>
+  caseRowsByOwner(db, workspaceId, agentId, 'agent');
 
 /** Map of caseId → latest per-case result (from the newest batch that ran it). */
 async function latestResultByCase(
@@ -173,6 +184,7 @@ async function latestResultByCase(
 
 export interface InsertBatchInput {
   workspaceId: string;
+  ownerKind?: 'skill' | 'agent';
   ownerId: string;
   agentVersion: number;
   model: string;
@@ -196,7 +208,7 @@ export async function insertBatch(
     .insert(t.evalBatches)
     .values({
       workspaceId: header.workspaceId,
-      ownerKind: 'agent',
+      ownerKind: header.ownerKind ?? 'agent',
       ownerId: header.ownerId,
       agentVersion: header.agentVersion,
       model: header.model,

@@ -15,6 +15,12 @@ export interface EvalAgent {
   systemPrompt: string;
   strategy: 'single-pass' | 'map-reduce' | 'auto';
   version: number;
+  /**
+   * Resolved skill bodies to inject into the review (skill evals: the artifact under
+   * test is a skill body run on top of a base reviewer prompt). Empty/undefined for
+   * agent evals — the agent's own system prompt is the artifact.
+   */
+  skills?: string[];
 }
 
 /** A case as the runner needs it (already loaded from `eval_cases`). */
@@ -95,6 +101,7 @@ export async function runEvalBatch(
       diff,
       llm,
       strategy: agent.strategy ?? 'single-pass',
+      ...(agent.skills && agent.skills.length ? { skills: agent.skills } : {}),
     });
 
     if (typeof outcome.costUsd === 'number') {
